@@ -1,62 +1,37 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+
+interface InventoryData {
+  region: string;
+  category: string;
+  subCategory: string;
+  currentStock: number;
+  forecastedDemand: number;
+  recommendedStock: number;
+  status: string;
+}
 
 const GlobalInventoryForecast = () => {
-  const forecastData = [
-    { month: 'Jan', actual: 85000, forecast: 87000, variance: -2.3 },
-    { month: 'Feb', actual: 82000, forecast: 84000, variance: -2.4 },
-    { month: 'Mar', actual: 88000, forecast: 86000, variance: 2.3 },
-    { month: 'Apr', actual: 91000, forecast: 89000, variance: 2.2 },
-    { month: 'May', actual: 94000, forecast: 92000, variance: 2.2 },
-    { month: 'Jun', actual: 96000, forecast: 95000, variance: 1.1 }
-  ];
+  const [drillLevel, setDrillLevel] = useState<'region' | 'category' | 'subCategory'>('region');
+  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const inventoryByRegion = [
-    {
-      region: 'North America',
-      currentStock: 45000,
-      forecastedDemand: 42000,
-      recommendedStock: 48000,
-      status: 'Adequate'
-    },
-    {
-      region: 'Europe',
-      currentStock: 32000,
-      forecastedDemand: 35000,
-      recommendedStock: 38000,
-      status: 'Low'
-    },
-    {
-      region: 'Asia Pacific',
-      currentStock: 28000,
-      forecastedDemand: 26000,
-      recommendedStock: 29000,
-      status: 'Optimal'
-    },
-    {
-      region: 'Latin America',
-      currentStock: 15000,
-      forecastedDemand: 18000,
-      recommendedStock: 20000,
-      status: 'Critical'
-    }
+  const inventoryData: InventoryData[] = [
+    { region: 'North America', category: 'Electronics', subCategory: 'Smartphones', currentStock: 25000, forecastedDemand: 22000, recommendedStock: 28000, status: 'Adequate' },
+    { region: 'North America', category: 'Electronics', subCategory: 'Laptops', currentStock: 15000, forecastedDemand: 18000, recommendedStock: 20000, status: 'Low' },
+    { region: 'North America', category: 'Clothing', subCategory: 'Shirts', currentStock: 35000, forecastedDemand: 30000, recommendedStock: 38000, status: 'Optimal' },
+    { region: 'Europe', category: 'Electronics', subCategory: 'Smartphones', currentStock: 18000, forecastedDemand: 20000, recommendedStock: 22000, status: 'Low' },
+    { region: 'Europe', category: 'Electronics', subCategory: 'Tablets', currentStock: 12000, forecastedDemand: 15000, recommendedStock: 18000, status: 'Critical' },
+    { region: 'Europe', category: 'Clothing', subCategory: 'Jackets', currentStock: 28000, forecastedDemand: 25000, recommendedStock: 30000, status: 'Optimal' },
+    { region: 'Asia Pacific', category: 'Electronics', subCategory: 'Smartphones', currentStock: 30000, forecastedDemand: 28000, recommendedStock: 32000, status: 'Optimal' },
+    { region: 'Asia Pacific', category: 'Clothing', subCategory: 'Pants', currentStock: 20000, forecastedDemand: 25000, recommendedStock: 28000, status: 'Critical' }
   ];
-
-  const chartConfig = {
-    actual: {
-      label: 'Actual',
-      color: '#3b82f6'
-    },
-    forecast: {
-      label: 'Forecast',
-      color: '#10b981'
-    }
-  };
 
   const getStatusBadge = (status: string) => {
     const colors = {
@@ -68,102 +43,163 @@ const GlobalInventoryForecast = () => {
     return <Badge className={colors[status as keyof typeof colors] || ''}>{status}</Badge>;
   };
 
+  const getFilteredData = () => {
+    let filtered = inventoryData;
+    
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(item => item.status === statusFilter);
+    }
+    
+    if (drillLevel === 'category' && selectedRegion) {
+      filtered = filtered.filter(item => item.region === selectedRegion);
+    }
+    
+    if (drillLevel === 'subCategory' && selectedRegion && selectedCategory) {
+      filtered = filtered.filter(item => 
+        item.region === selectedRegion && item.category === selectedCategory
+      );
+    }
+    
+    return filtered;
+  };
+
+  const getGroupedData = () => {
+    const filtered = getFilteredData();
+    const grouped = new Map();
+
+    filtered.forEach(item => {
+      let key = '';
+      if (drillLevel === 'region') key = item.region;
+      else if (drillLevel === 'category') key = item.category;
+      else key = item.subCategory;
+
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          key,
+          currentStock: 0,
+          forecastedDemand: 0,
+          recommendedStock: 0,
+          items: []
+        });
+      }
+      
+      const group = grouped.get(key);
+      group.currentStock += item.currentStock;
+      group.forecastedDemand += item.forecastedDemand;
+      group.recommendedStock += item.recommendedStock;
+      group.items.push(item);
+    });
+
+    return Array.from(grouped.values());
+  };
+
+  const handleDrillDown = (key: string) => {
+    if (drillLevel === 'region') {
+      setSelectedRegion(key);
+      setDrillLevel('category');
+    } else if (drillLevel === 'category') {
+      setSelectedCategory(key);
+      setDrillLevel('subCategory');
+    }
+  };
+
+  const handleDrillUp = () => {
+    if (drillLevel === 'subCategory') {
+      setSelectedCategory(null);
+      setDrillLevel('category');
+    } else if (drillLevel === 'category') {
+      setSelectedRegion(null);
+      setDrillLevel('region');
+    }
+  };
+
+  const getBreadcrumb = () => {
+    let breadcrumb = 'All Regions';
+    if (selectedRegion) breadcrumb += ` > ${selectedRegion}`;
+    if (selectedCategory) breadcrumb += ` > ${selectedCategory}`;
+    return breadcrumb;
+  };
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Global Inventory Forecast</CardTitle>
-          <CardDescription>Inventory forecasting and optimization across regions</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={forecastData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Area 
-                  type="monotone" 
-                  dataKey="forecast" 
-                  stackId="1"
-                  stroke="var(--color-forecast)"
-                  fill="var(--color-forecast)"
-                  fillOpacity={0.3}
-                  name="Forecast"
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="actual" 
-                  stackId="2"
-                  stroke="var(--color-actual)"
-                  fill="var(--color-actual)"
-                  fillOpacity={0.3}
-                  name="Actual"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Regional Inventory Analysis</CardTitle>
-          <CardDescription>Current stock levels vs forecasted demand by region</CardDescription>
+          <CardDescription>Configurable inventory analysis with drill-down capabilities</CardDescription>
+          <div className="flex flex-wrap gap-4">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="Optimal">Optimal</SelectItem>
+                <SelectItem value="Adequate">Adequate</SelectItem>
+                <SelectItem value="Low">Low</SelectItem>
+                <SelectItem value="Critical">Critical</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {(selectedRegion || selectedCategory) && (
+              <Button onClick={handleDrillUp} variant="outline" size="sm">
+                ← Drill Up
+              </Button>
+            )}
+            
+            <div className="text-sm text-gray-600 flex items-center">
+              <span className="font-medium">Path: </span>
+              <span className="ml-1">{getBreadcrumb()}</span>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Region</TableHead>
+                <TableHead className="capitalize">
+                  {drillLevel === 'region' ? 'Region' : 
+                   drillLevel === 'category' ? 'Category' : 'Sub Category'}
+                </TableHead>
                 <TableHead>Current Stock</TableHead>
                 <TableHead>Forecasted Demand</TableHead>
                 <TableHead>Recommended Stock</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Utilization %</TableHead>
+                <TableHead>Items Count</TableHead>
+                <TableHead>Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {inventoryByRegion.map((item, index) => (
-                <TableRow key={index}>
-                  <TableCell className="font-medium">{item.region}</TableCell>
-                  <TableCell>{item.currentStock.toLocaleString()}</TableCell>
-                  <TableCell>{item.forecastedDemand.toLocaleString()}</TableCell>
-                  <TableCell>{item.recommendedStock.toLocaleString()}</TableCell>
-                  <TableCell>{getStatusBadge(item.status)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Forecast Accuracy</CardTitle>
-          <CardDescription>Monthly variance between actual and forecasted inventory</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Month</TableHead>
-                <TableHead>Actual</TableHead>
-                <TableHead>Forecast</TableHead>
-                <TableHead>Variance (%)</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {forecastData.map((item, index) => (
-                <TableRow key={index}>
-                  <TableCell className="font-medium">{item.month}</TableCell>
-                  <TableCell>{item.actual.toLocaleString()}</TableCell>
-                  <TableCell>{item.forecast.toLocaleString()}</TableCell>
-                  <TableCell className={item.variance >= 0 ? 'text-green-600' : 'text-red-600'}>
-                    {item.variance > 0 ? '+' : ''}{item.variance}%
-                  </TableCell>
-                </TableRow>
-              ))}
+              {getGroupedData().map((group, index) => {
+                const utilization = ((group.currentStock / group.recommendedStock) * 100).toFixed(1);
+                return (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium">{group.key}</TableCell>
+                    <TableCell>{group.currentStock.toLocaleString()}</TableCell>
+                    <TableCell>{group.forecastedDemand.toLocaleString()}</TableCell>
+                    <TableCell>{group.recommendedStock.toLocaleString()}</TableCell>
+                    <TableCell>
+                      <span className={`font-medium ${
+                        parseFloat(utilization) > 90 ? 'text-green-600' :
+                        parseFloat(utilization) > 70 ? 'text-yellow-600' : 'text-red-600'
+                      }`}>
+                        {utilization}%
+                      </span>
+                    </TableCell>
+                    <TableCell>{group.items.length}</TableCell>
+                    <TableCell>
+                      {drillLevel !== 'subCategory' && (
+                        <Button 
+                          onClick={() => handleDrillDown(group.key)}
+                          variant="outline" 
+                          size="sm"
+                        >
+                          Drill Down →
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>

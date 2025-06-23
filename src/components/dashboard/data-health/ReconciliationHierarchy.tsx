@@ -1,145 +1,187 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-interface HierarchyNode {
-  id: string;
-  name: string;
-  level: number;
+interface HierarchyData {
+  interface: string;
+  typeCode: string;
+  inventoryChannel: string;
+  nodeCode: string;
   recordCount: number;
   reconciledCount: number;
-  children?: HierarchyNode[];
+  status: string;
 }
 
 const ReconciliationHierarchy = () => {
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['root']));
+  const [drillLevel, setDrillLevel] = useState<'interface' | 'typeCode' | 'inventoryChannel' | 'nodeCode'>('interface');
+  const [selectedValues, setSelectedValues] = useState<{[key: string]: string}>({});
 
-  const hierarchyData: HierarchyNode[] = [
-    {
-      id: 'root',
-      name: 'Global Data',
-      level: 0,
-      recordCount: 1000000,
-      reconciledCount: 995000,
-      children: [
-        {
-          id: 'region-1',
-          name: 'North America',
-          level: 1,
-          recordCount: 400000,
-          reconciledCount: 398000,
-          children: [
-            {
-              id: 'country-1',
-              name: 'United States',
-              level: 2,
-              recordCount: 300000,
-              reconciledCount: 299000
-            },
-            {
-              id: 'country-2',
-              name: 'Canada',
-              level: 2,
-              recordCount: 100000,
-              reconciledCount: 99000
-            }
-          ]
-        },
-        {
-          id: 'region-2',
-          name: 'Europe',
-          level: 1,
-          recordCount: 350000,
-          reconciledCount: 347000,
-          children: [
-            {
-              id: 'country-3',
-              name: 'Germany',
-              level: 2,
-              recordCount: 150000,
-              reconciledCount: 149000
-            },
-            {
-              id: 'country-4',
-              name: 'France',
-              level: 2,
-              recordCount: 120000,
-              reconciledCount: 119000
-            }
-          ]
-        }
-      ]
-    }
+  const hierarchyData: HierarchyData[] = [
+    { interface: 'API-001', typeCode: 'INBOUND', inventoryChannel: 'RETAIL', nodeCode: 'N001', recordCount: 50000, reconciledCount: 49500, status: 'Success' },
+    { interface: 'API-001', typeCode: 'INBOUND', inventoryChannel: 'ONLINE', nodeCode: 'N002', recordCount: 30000, reconciledCount: 29800, status: 'Warning' },
+    { interface: 'API-002', typeCode: 'OUTBOUND', inventoryChannel: 'RETAIL', nodeCode: 'N003', recordCount: 25000, reconciledCount: 25000, status: 'Success' },
+    { interface: 'API-002', typeCode: 'OUTBOUND', inventoryChannel: 'WHOLESALE', nodeCode: 'N004', recordCount: 40000, reconciledCount: 39200, status: 'Warning' },
+    { interface: 'FTP-001', typeCode: 'BATCH', inventoryChannel: 'DISTRIBUTION', nodeCode: 'N005', recordCount: 60000, reconciledCount: 58800, status: 'Error' }
   ];
 
-  const toggleNode = (nodeId: string) => {
-    const newExpanded = new Set(expandedNodes);
-    if (newExpanded.has(nodeId)) {
-      newExpanded.delete(nodeId);
-    } else {
-      newExpanded.add(nodeId);
-    }
-    setExpandedNodes(newExpanded);
+  const getFilteredData = () => {
+    let filtered = hierarchyData;
+    
+    Object.entries(selectedValues).forEach(([key, value]) => {
+      if (value && value !== 'all') {
+        filtered = filtered.filter(item => item[key as keyof HierarchyData] === value);
+      }
+    });
+
+    return filtered;
   };
 
-  const renderNode = (node: HierarchyNode) => {
-    const isExpanded = expandedNodes.has(node.id);
-    const hasChildren = node.children && node.children.length > 0;
-    const reconciliationRate = ((node.reconciledCount / node.recordCount) * 100).toFixed(2);
+  const getGroupedData = () => {
+    const filtered = getFilteredData();
+    const grouped = new Map();
 
-    return (
-      <div key={node.id} className="mb-2">
-        <div 
-          className={`flex items-center p-3 border rounded-lg hover:bg-gray-50 ${
-            node.level === 0 ? 'bg-blue-50 border-blue-200' : 
-            node.level === 1 ? 'bg-green-50 border-green-200 ml-4' : 'bg-gray-50 border-gray-200 ml-8'
-          }`}
-        >
-          {hasChildren && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => toggleNode(node.id)}
-              className="mr-2 p-1 h-6 w-6"
-            >
-              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
-          )}
-          <div className="flex-1">
-            <div className="flex justify-between items-center">
-              <span className="font-medium">{node.name}</span>
-              <div className="flex space-x-4 text-sm">
-                <span>Records: {node.recordCount.toLocaleString()}</span>
-                <span>Reconciled: {node.reconciledCount.toLocaleString()}</span>
-                <span className={`font-medium ${parseFloat(reconciliationRate) >= 95 ? 'text-green-600' : 'text-yellow-600'}`}>
-                  {reconciliationRate}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {isExpanded && hasChildren && (
-          <div className="mt-2">
-            {node.children!.map(child => renderNode(child))}
-          </div>
-        )}
-      </div>
-    );
+    filtered.forEach(item => {
+      const key = item[drillLevel];
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          key,
+          recordCount: 0,
+          reconciledCount: 0,
+          items: []
+        });
+      }
+      
+      const group = grouped.get(key);
+      group.recordCount += item.recordCount;
+      group.reconciledCount += item.reconciledCount;
+      group.items.push(item);
+    });
+
+    return Array.from(grouped.values());
   };
+
+  const getStatusBadge = (reconciliationRate: number) => {
+    if (reconciliationRate >= 98) return 'bg-green-100 text-green-800';
+    if (reconciliationRate >= 95) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
+  };
+
+  const getUniqueValues = (field: keyof HierarchyData) => {
+    return ['all', ...Array.from(new Set(hierarchyData.map(item => item[field])))];
+  };
+
+  const drillLevels = [
+    { value: 'interface', label: 'Interface' },
+    { value: 'typeCode', label: 'Type Code' },
+    { value: 'inventoryChannel', label: 'Inventory Channel' },
+    { value: 'nodeCode', label: 'Node Code' }
+  ];
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Reconciliation Hierarchy Report</CardTitle>
-        <CardDescription>Hierarchical view of data reconciliation across regions and countries</CardDescription>
+        <CardDescription>Configurable drill-down view across multiple dimensions</CardDescription>
+        <div className="flex flex-wrap gap-4">
+          <Select value={drillLevel} onValueChange={(value: any) => setDrillLevel(value)}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Select drill level" />
+            </SelectTrigger>
+            <SelectContent>
+              {drillLevels.map(level => (
+                <SelectItem key={level.value} value={level.value}>
+                  Group by {level.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select 
+            value={selectedValues.interface || 'all'} 
+            onValueChange={(value) => setSelectedValues(prev => ({...prev, interface: value}))}
+          >
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="Interface" />
+            </SelectTrigger>
+            <SelectContent>
+              {getUniqueValues('interface').map(value => (
+                <SelectItem key={value} value={value}>
+                  {value === 'all' ? 'All' : value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select 
+            value={selectedValues.typeCode || 'all'} 
+            onValueChange={(value) => setSelectedValues(prev => ({...prev, typeCode: value}))}
+          >
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="Type Code" />
+            </SelectTrigger>
+            <SelectContent>
+              {getUniqueValues('typeCode').map(value => (
+                <SelectItem key={value} value={value}>
+                  {value === 'all' ? 'All' : value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select 
+            value={selectedValues.inventoryChannel || 'all'} 
+            onValueChange={(value) => setSelectedValues(prev => ({...prev, inventoryChannel: value}))}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Channel" />
+            </SelectTrigger>
+            <SelectContent>
+              {getUniqueValues('inventoryChannel').map(value => (
+                <SelectItem key={value} value={value}>
+                  {value === 'all' ? 'All' : value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button onClick={() => setSelectedValues({})} variant="outline" size="sm">
+            Clear Filters
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {hierarchyData.map(node => renderNode(node))}
-        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="capitalize">{drillLevel.replace(/([A-Z])/g, ' $1')}</TableHead>
+              <TableHead>Total Records</TableHead>
+              <TableHead>Reconciled</TableHead>
+              <TableHead>Success Rate</TableHead>
+              <TableHead>Count</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {getGroupedData().map((group, index) => {
+              const successRate = ((group.reconciledCount / group.recordCount) * 100).toFixed(2);
+              return (
+                <TableRow key={index}>
+                  <TableCell className="font-medium">{group.key}</TableCell>
+                  <TableCell>{group.recordCount.toLocaleString()}</TableCell>
+                  <TableCell>{group.reconciledCount.toLocaleString()}</TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusBadge(parseFloat(successRate))}`}>
+                      {successRate}%
+                    </span>
+                  </TableCell>
+                  <TableCell>{group.items.length} items</TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
