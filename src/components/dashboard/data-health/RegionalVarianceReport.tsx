@@ -118,9 +118,9 @@ const RegionalVarianceReport = () => {
                 <SelectValue placeholder="Interface" />
               </SelectTrigger>
               <SelectContent>
-                {interfaces.map(interface => (
-                  <SelectItem key={interface} value={interface}>
-                    {interface === 'all' ? 'All Interfaces' : interface}
+                {interfaces.map(interfaceName => (
+                  <SelectItem key={interfaceName} value={interfaceName}>
+                    {interfaceName === 'all' ? 'All Interfaces' : interfaceName}
                   </SelectItem>
                 ))}
               </SelectContent>

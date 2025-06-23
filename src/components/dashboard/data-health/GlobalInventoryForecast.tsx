@@ -4,202 +4,177 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 
 const GlobalInventoryForecast = () => {
-  const [selectedLevel, setSelectedLevel] = useState<'global' | 'region' | 'country'>('global');
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
-  const [selectedMetric, setSelectedMetric] = useState<string>('all');
+  const [drillLevel, setDrillLevel] = useState<'global' | 'region' | 'warehouse'>('global');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   const globalData = [
     {
       region: 'North America',
-      currentStock: 45000,
-      forecastedDemand: 42000,
-      recommendedStock: 48000,
-      status: 'Adequate',
-      variance: 7.14,
-      category: 'Electronics',
-      countries: [
+      regionName: 'North America',
+      totalInventory: 1250000,
+      forecastedDemand: 1100000,
+      variance: 13.6,
+      status: 'Overstock',
+      warehouses: [
         {
-          name: 'United States',
-          currentStock: 35000,
-          forecastedDemand: 33000,
-          recommendedStock: 38000,
-          status: 'Adequate',
-          variance: 6.06,
-          category: 'Electronics'
+          name: 'Warehouse NYC',
+          currentStock: 450000,
+          forecastedDemand: 400000,
+          recommendedStock: 420000,
+          status: 'Optimal',
+          variance: 12.5,
+          type: 'Distribution Center'
         },
         {
-          name: 'Canada',
-          currentStock: 10000,
-          forecastedDemand: 9000,
-          recommendedStock: 10000,
-          status: 'Optimal',
-          variance: 11.11,
-          category: 'Electronics'
+          name: 'Warehouse LA',
+          currentStock: 380000,
+          forecastedDemand: 350000,
+          recommendedStock: 365000,
+          status: 'Overstock',
+          variance: 8.6,
+          type: 'Regional Hub'
+        },
+        {
+          name: 'Warehouse Chicago',
+          currentStock: 420000,
+          forecastedDemand: 350000,
+          recommendedStock: 365000,
+          status: 'Overstock',
+          variance: 20.0,
+          type: 'Distribution Center'
         }
       ]
     },
     {
       region: 'Europe',
-      currentStock: 32000,
-      forecastedDemand: 35000,
-      recommendedStock: 38000,
-      status: 'Low',
-      variance: -8.57,
-      category: 'Automotive',
-      countries: [
+      regionName: 'Europe',
+      totalInventory: 980000,
+      forecastedDemand: 950000,
+      variance: 3.2,
+      status: 'Optimal',
+      warehouses: [
         {
-          name: 'Germany',
-          currentStock: 18000,
-          forecastedDemand: 20000,
-          recommendedStock: 22000,
-          status: 'Low',
-          variance: -10.00,
-          category: 'Automotive'
+          name: 'Warehouse London',
+          currentStock: 320000,
+          forecastedDemand: 310000,
+          recommendedStock: 315000,
+          status: 'Optimal',
+          variance: 3.2,
+          type: 'Regional Hub'
         },
         {
-          name: 'France',
-          currentStock: 14000,
-          forecastedDemand: 15000,
-          recommendedStock: 16000,
-          status: 'Low',
-          variance: -6.67,
-          category: 'Automotive'
+          name: 'Warehouse Berlin',
+          currentStock: 280000,
+          forecastedDemand: 270000,
+          recommendedStock: 275000,
+          status: 'Optimal',
+          variance: 3.7,
+          type: 'Distribution Center'
+        },
+        {
+          name: 'Warehouse Paris',
+          currentStock: 380000,
+          forecastedDemand: 370000,
+          recommendedStock: 375000,
+          status: 'Optimal',
+          variance: 2.7,
+          type: 'Regional Hub'
         }
       ]
     },
     {
       region: 'Asia Pacific',
-      currentStock: 28000,
-      forecastedDemand: 26000,
-      recommendedStock: 29000,
-      status: 'Optimal',
-      variance: 7.69,
-      category: 'Consumer Goods',
-      countries: [
+      regionName: 'Asia Pacific',
+      totalInventory: 750000,
+      forecastedDemand: 800000,
+      variance: -6.3,
+      status: 'Understock',
+      warehouses: [
         {
-          name: 'Japan',
-          currentStock: 15000,
-          forecastedDemand: 14000,
-          recommendedStock: 16000,
-          status: 'Optimal',
-          variance: 7.14,
-          category: 'Consumer Goods'
+          name: 'Warehouse Tokyo',
+          currentStock: 280000,
+          forecastedDemand: 320000,
+          recommendedStock: 310000,
+          status: 'Understock',
+          variance: -12.5,
+          type: 'Regional Hub'
         },
         {
-          name: 'Australia',
-          currentStock: 13000,
-          forecastedDemand: 12000,
-          recommendedStock: 13000,
+          name: 'Warehouse Sydney',
+          currentStock: 220000,
+          forecastedDemand: 240000,
+          recommendedStock: 235000,
+          status: 'Understock',
+          variance: -8.3,
+          type: 'Distribution Center'
+        },
+        {
+          name: 'Warehouse Singapore',
+          currentStock: 250000,
+          forecastedDemand: 240000,
+          recommendedStock: 245000,
           status: 'Optimal',
-          variance: 8.33,
-          category: 'Consumer Goods'
+          variance: 4.2,
+          type: 'Regional Hub'
         }
       ]
     }
   ];
 
-  const metrics = ['all', 'current_stock', 'forecasted_demand', 'recommended_stock'];
-  const categories = ['all', 'Electronics', 'Automotive', 'Consumer Goods'];
+  const categories = ['all', 'Distribution Center', 'Regional Hub'];
 
-  const getStatusBadge = (status: string) => {
-    const colors = {
-      'Optimal': 'bg-green-100 text-green-800',
-      'Adequate': 'bg-blue-100 text-blue-800',
-      'Low': 'bg-yellow-100 text-yellow-800',
-      'Critical': 'bg-red-100 text-red-800'
-    };
-    return <Badge className={colors[status as keyof typeof colors] || ''}>{status}</Badge>;
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Optimal': return 'text-green-600';
+      case 'Overstock': return 'text-yellow-600';
+      case 'Understock': return 'text-red-600';
+      default: return 'text-gray-600';
+    }
   };
 
   const getVarianceColor = (variance: number) => {
-    if (variance > 5) return 'text-green-600';
-    if (variance < -5) return 'text-red-600';
-    return 'text-yellow-600';
+    if (Math.abs(variance) > 10) return 'text-red-600';
+    if (Math.abs(variance) > 5) return 'text-yellow-600';
+    return 'text-green-600';
   };
 
   const handleDrillDown = (regionName: string) => {
     setSelectedRegion(regionName);
-    setSelectedLevel('country');
+    setDrillLevel(drillLevel === 'global' ? 'region' : 'warehouse');
   };
 
   const handleDrillUp = () => {
-    if (selectedLevel === 'country') {
-      setSelectedRegion(null);
-      setSelectedLevel('region');
-    } else if (selectedLevel === 'region') {
-      setSelectedLevel('global');
-    }
-  };
-
-  const filteredData = selectedCategory === 'all' 
-    ? globalData 
-    : globalData.filter(item => item.category === selectedCategory);
-
-  const getCurrentData = () => {
-    if (selectedLevel === 'global') {
-      return filteredData.map(region => ({
-        name: `${region.region} (${region.category})`,
-        currentStock: region.currentStock,
-        forecastedDemand: region.forecastedDemand,
-        recommendedStock: region.recommendedStock,
-        status: region.status,
-        variance: region.variance,
-        type: 'region',
-        regionName: region.region
-      }));
-    } else if (selectedLevel === 'region') {
-      return filteredData.map(region => ({
-        name: region.region,
-        currentStock: region.currentStock,
-        forecastedDemand: region.forecastedDemand,
-        recommendedStock: region.recommendedStock,
-        status: region.status,
-        variance: region.variance,
-        type: 'region',
-        regionName: region.region
-      }));
+    if (drillLevel === 'warehouse') {
+      setDrillLevel('region');
     } else {
-      const selectedRegionData = filteredData.find(r => r.region === selectedRegion);
-      return selectedRegionData?.countries.map(country => ({
-        name: country.name,
-        currentStock: country.currentStock,
-        forecastedDemand: country.forecastedDemand,
-        recommendedStock: country.recommendedStock,
-        status: country.status,
-        variance: country.variance,
-        type: 'country'
-      })) || [];
+      setSelectedRegion(null);
+      setDrillLevel('global');
     }
   };
+
+  const filteredGlobalData = globalData.filter(region => 
+    selectedCategory === 'all' || 
+    region.warehouses.some(warehouse => warehouse.type === selectedCategory)
+  );
+
+  const selectedRegionData = globalData.find(r => r.regionName === selectedRegion);
+  const filteredWarehouses = selectedRegionData?.warehouses.filter(warehouse =>
+    selectedCategory === 'all' || warehouse.type === selectedCategory
+  ) || [];
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Global Inventory Forecast</CardTitle>
-          <CardDescription>
-            Inventory forecasting with drill-down capabilities
-            {selectedLevel === 'country' && ` - ${selectedRegion}`}
-          </CardDescription>
+          <CardDescription>Regional inventory analysis with drill-down capabilities</CardDescription>
           <div className="flex flex-wrap gap-4">
-            <Select value={selectedMetric} onValueChange={setSelectedMetric}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Select Metric" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Metrics</SelectItem>
-                <SelectItem value="current_stock">Current Stock</SelectItem>
-                <SelectItem value="forecasted_demand">Forecasted Demand</SelectItem>
-                <SelectItem value="recommended_stock">Recommended Stock</SelectItem>
-              </SelectContent>
-            </Select>
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Select Category" />
+                <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
                 {categories.map(category => (
@@ -209,86 +184,78 @@ const GlobalInventoryForecast = () => {
                 ))}
               </SelectContent>
             </Select>
-            {selectedLevel !== 'global' && (
+            {selectedRegion && (
               <Button onClick={handleDrillUp} variant="outline" size="sm">
-                ← Drill Up
+                ← Back to {drillLevel === 'warehouse' ? 'Region' : 'Global'}
               </Button>
             )}
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{selectedLevel === 'country' ? 'Country' : 'Region'}</TableHead>
-                <TableHead>Current Stock</TableHead>
-                <TableHead>Forecasted Demand</TableHead>
-                <TableHead>Recommended Stock</TableHead>
-                <TableHead>Variance (%)</TableHead>
-                <TableHead>Status</TableHead>
-                {selectedLevel !== 'country' && <TableHead>Action</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {getCurrentData().map((item, index) => (
-                <TableRow key={index}>
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell>{item.currentStock.toLocaleString()}</TableCell>
-                  <TableCell>{item.forecastedDemand.toLocaleString()}</TableCell>
-                  <TableCell>{item.recommendedStock.toLocaleString()}</TableCell>
-                  <TableCell className={getVarianceColor(item.variance)}>
-                    {item.variance > 0 ? '+' : ''}{item.variance.toFixed(2)}%
-                  </TableCell>
-                  <TableCell>{getStatusBadge(item.status)}</TableCell>
-                  {selectedLevel !== 'country' && (
+          {drillLevel === 'global' ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Region</TableHead>
+                  <TableHead>Total Inventory</TableHead>
+                  <TableHead>Forecasted Demand</TableHead>
+                  <TableHead>Variance (%)</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredGlobalData.map((region, index) => (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium">{region.regionName}</TableCell>
+                    <TableCell>{region.totalInventory.toLocaleString()}</TableCell>
+                    <TableCell>{region.forecastedDemand.toLocaleString()}</TableCell>
+                    <TableCell className={getVarianceColor(region.variance)}>
+                      {region.variance > 0 ? '+' : ''}{region.variance.toFixed(1)}%
+                    </TableCell>
+                    <TableCell className={getStatusColor(region.status)}>{region.status}</TableCell>
                     <TableCell>
-                      <Button 
-                        onClick={() => handleDrillDown(item.regionName)} 
-                        variant="outline" 
-                        size="sm"
-                      >
+                      <Button onClick={() => handleDrillDown(region.regionName)} variant="outline" size="sm">
                         Drill Down →
                       </Button>
                     </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Inventory Summary</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">
-                {getCurrentData().reduce((sum, item) => sum + item.currentStock, 0).toLocaleString()}
-              </div>
-              <div className="text-sm text-blue-600">Total Current Stock</div>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">{selectedRegion} - Warehouse Details</h3>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Warehouse</TableHead>
+                    <TableHead>Current Stock</TableHead>
+                    <TableHead>Forecasted Demand</TableHead>
+                    <TableHead>Recommended Stock</TableHead>
+                    <TableHead>Variance (%)</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredWarehouses.map((warehouse, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium">{warehouse.name}</TableCell>
+                      <TableCell>{warehouse.currentStock.toLocaleString()}</TableCell>
+                      <TableCell>{warehouse.forecastedDemand.toLocaleString()}</TableCell>
+                      <TableCell>{warehouse.recommendedStock.toLocaleString()}</TableCell>
+                      <TableCell className={getVarianceColor(warehouse.variance)}>
+                        {warehouse.variance > 0 ? '+' : ''}{warehouse.variance.toFixed(1)}%
+                      </TableCell>
+                      <TableCell>{warehouse.type}</TableCell>
+                      <TableCell className={getStatusColor(warehouse.status)}>{warehouse.status}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">
-                {getCurrentData().reduce((sum, item) => sum + item.forecastedDemand, 0).toLocaleString()}
-              </div>
-              <div className="text-sm text-green-600">Total Forecasted Demand</div>
-            </div>
-            <div className="text-center p-4 bg-yellow-50 rounded-lg">
-              <div className="text-2xl font-bold text-yellow-600">
-                {getCurrentData().reduce((sum, item) => sum + item.recommendedStock, 0).toLocaleString()}
-              </div>
-              <div className="text-sm text-yellow-600">Total Recommended Stock</div>
-            </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">
-                {getCurrentData().filter(item => item.status === 'Optimal').length}
-              </div>
-              <div className="text-sm text-purple-600">Optimal Regions</div>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>
