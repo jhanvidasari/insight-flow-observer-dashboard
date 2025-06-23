@@ -32,7 +32,10 @@ const ReconciliationHierarchy = () => {
     
     Object.entries(selectedValues).forEach(([key, value]) => {
       if (value && value !== 'all') {
-        filtered = filtered.filter(item => item[key as keyof HierarchyData] === value);
+        filtered = filtered.filter(item => {
+          const itemValue = item[key as keyof HierarchyData];
+          return String(itemValue) === value;
+        });
       }
     });
 
@@ -44,7 +47,7 @@ const ReconciliationHierarchy = () => {
     const grouped = new Map();
 
     filtered.forEach(item => {
-      const key = item[drillLevel];
+      const key = String(item[drillLevel]);
       if (!grouped.has(key)) {
         grouped.set(key, {
           key,
@@ -70,7 +73,8 @@ const ReconciliationHierarchy = () => {
   };
 
   const getUniqueValues = (field: keyof HierarchyData) => {
-    return ['all', ...Array.from(new Set(hierarchyData.map(item => item[field])))];
+    const values = Array.from(new Set(hierarchyData.map(item => String(item[field]))));
+    return ['all', ...values];
   };
 
   const drillLevels = [
